@@ -1,7 +1,21 @@
-package expense
+package account
+
+import (
+	"bytes"
+	"text/template"
+	"time"
+)
+
+type Type int
+const (
+	Asset Type = iota
+	Expense
+	Income
+	Liability
+)
 
 // Reference: https://lists.gnucash.org/pipermail/gnucash-user/2014-December/057344.html
-const Query = `
+const query = `
 WITH RECURSIVE tree (
     guid,
     parent_guid,
@@ -21,9 +35,7 @@ WITH RECURSIVE tree (
     FROM accounts
     WHERE parent_guid IS NULL
     AND NAME <> 'Template Root'
-
     UNION ALL
-
     SELECT a.guid,
            a.parent_guid,
            a.name,
@@ -35,7 +47,6 @@ WITH RECURSIVE tree (
     JOIN accounts a
     ON tree.guid = a.parent_guid
 )
-
 SELECT tr.account_type,
     tr.depth,
     tr.name AS depth_name,
@@ -49,18 +60,56 @@ SELECT tr.account_type,
      WHERE tr1.depth >= tr.depth
      AND tr1.account_type = tr.account_type
      AND tr1.name_tree LIKE tr.name_tree || '%'
-     AND tx.post_date LIKE $1 || '%') AS value
+     AND strftime('%s', tx.post_date) BETWEEN "{{.Time1}}" AND "{{.Time2}}"
+    ) AS value
 FROM tree tr
-WHERE tr.depth = $2
-AND tr.account_type = 'EXPENSE'
-AND value > 0
+WHERE tr.depth = {{.Depth}}
+AND tr.account_type IN ({{.Type}})
+AND value <> 0
 ORDER BY tr.name_tree, value DESC;
 `
 
 type Row struct {
-	AccountType string  `csv:"account_type" db:"account_type"`
-	Depth       int     `csv:"depth"        db:"depth"`
-        DepthName   string  `csv:"depth_name"   db:"depth_name"`
-	FullName    string  `csv:"full_name"    db:"full_name"`
-	Value       float64 `csv:"value"        db:"value"`
+	Type      string  `csv:"account_type" db:"account_type"`
+	Depth     int     `csv:"depth"        db:"depth"`
+        DepthName string  `csv:"depth_name"   db:"depth_name"`
+	FullName  string  `csv:"full_name"    db:"full_name"`
+	Value     float64 `csv:"value"        db:"value"`
+}
+
+type data struct {
+	Depth int
+	Type  string
+	Time1 int64
+	Time2 int64
+}
+
+func NewQuery(typ Type, depth int, time1, time2 time.Time) string {
+	qry := ""
+	typStr := TypeToString(typ)
+
+	if t, err := template.New(typStr).Parse(query); err == nil {
+		var buf bytes.Buffer
+		if err = t.Execute(&buf, data{Depth: depth, Type: typStr, Time1: time1.Unix(), Time2: time2.Unix()}); err == nil {
+			qry = buf.String()
+		}
+	}
+
+	return qry
+}
+
+func TypeToString(typ Type) string {
+	str := ""
+	switch typ {
+	case Asset:
+		str = "'ASSET', 'BANK', 'CASH'" // EQUITY, STOCK
+	case Expense:
+		str = "'EXPENSE'"
+	case Income:
+		str = "'INCOME'"
+	case Liability:
+		str = "'CREDIT', 'LIABILITY'"
+	default:
+	}
+	return str
 }
