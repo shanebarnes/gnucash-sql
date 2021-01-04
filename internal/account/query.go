@@ -47,7 +47,9 @@ WITH RECURSIVE tree (
     JOIN accounts a
     ON tree.guid = a.parent_guid
 )
-SELECT tr.account_type,
+SELECT '{{.Type}}' AS account_type,
+    datetime({{.Time1}}, 'unixepoch', 'localtime') AS start_date,
+    datetime({{.Time2}}, 'unixepoch', 'localtime') AS end_date,
     tr.depth,
     tr.name AS depth_name,
     tr.name_tree AS full_name,
@@ -58,19 +60,20 @@ SELECT tr.account_type,
      LEFT JOIN transactions tx
      ON s.tx_guid = tx.guid
      WHERE tr1.depth >= tr.depth
-     AND tr1.account_type = tr.account_type
      AND tr1.name_tree LIKE tr.name_tree || '%'
      AND strftime('%s', tx.post_date) BETWEEN "{{.Time1}}" AND "{{.Time2}}"
     ) AS value
 FROM tree tr
 WHERE tr.depth = {{.Depth}}
-AND tr.account_type IN ({{.Type}})
+AND tr.account_type IN ({{.TypeValues}})
 AND value <> 0
 ORDER BY tr.name_tree, value DESC;
 `
 
 type Row struct {
 	Type      string  `csv:"account_type" db:"account_type"`
+	StartDate string  `csv:"start_date"   db:"start_date"`
+	EndDate   string  `csv:"end_date"      db:"end_date"`
 	Depth     int     `csv:"depth"        db:"depth"`
         DepthName string  `csv:"depth_name"   db:"depth_name"`
 	FullName  string  `csv:"full_name"    db:"full_name"`
@@ -78,19 +81,25 @@ type Row struct {
 }
 
 type data struct {
-	Depth int
-	Type  string
-	Time1 int64
-	Time2 int64
+	Depth      int
+	Type       string
+	TypeValues string
+	Time1      int64
+	Time2      int64
 }
 
 func NewQuery(typ Type, depth int, time1, time2 time.Time) string {
 	qry := ""
-	typStr := TypeToString(typ)
-
-	if t, err := template.New(typStr).Parse(query); err == nil {
+	if t, err := template.New(TypeToString(typ)).Parse(query); err == nil {
 		var buf bytes.Buffer
-		if err = t.Execute(&buf, data{Depth: depth, Type: typStr, Time1: time1.Unix(), Time2: time2.Unix()}); err == nil {
+		input := data{
+			Depth: depth,
+			Type: TypeToString(typ),
+			TypeValues: TypeToValues(typ),
+			Time1: time1.Unix(),
+			Time2: time2.Unix(),
+		}
+		if err = t.Execute(&buf, input); err == nil {
 			qry = buf.String()
 		}
 	}
@@ -102,14 +111,31 @@ func TypeToString(typ Type) string {
 	str := ""
 	switch typ {
 	case Asset:
-		str = "'ASSET', 'BANK', 'CASH'" // EQUITY, STOCK
+		str = "ASSET"
 	case Expense:
-		str = "'EXPENSE'"
+		str = "EXPENSE"
 	case Income:
-		str = "'INCOME'"
+		str = "INCOME"
 	case Liability:
-		str = "'CREDIT', 'LIABILITY'"
+		str = "LIABILITY"
 	default:
 	}
 	return str
+}
+
+func TypeToValues(typ Type) string {
+	vals := ""
+	switch typ {
+	case Asset:
+		vals = "'ASSET', 'BANK', 'CASH'"
+	case Expense:
+		vals = "'EXPENSE'"
+	case Income:
+		vals = "'INCOME'"
+	case Liability:
+		vals = "'CREDIT', 'LIABILITY'"
+	default:
+	}
+	return vals
+
 }
