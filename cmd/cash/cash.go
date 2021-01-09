@@ -14,18 +14,31 @@ import (
 )
 
 const (
-	dateFormat = "2006-01-02"
+	flagAccount = "account"
+	flagDatabase = "db"
+	flagDepth = "depth"
+	flagDateEnd = "end"
+	flagDateMonthOf = "monthof"
+	flagDateQuarterOf = "quarterof"
+	flagDateStart = "start"
+	flagDateWeekOf = "weekof"
+	flagDateYearOf = "yearof"
 )
 
 type args struct {
-	dbFile    string
-	date      string
-	depth     int
-	dt        time.Time
-	monthly   bool
-	quarterly bool
-	weekly    bool
-	yearly    bool
+	account      string
+	accountType  account.Type
+	dbFile       string
+	date         string
+	depth        int
+	dtEnd        time.Time
+	dtStart      time.Time
+	strEnd       string
+	strMonthOf   string
+	strQuarterOf string
+	strStart     string
+	strWeekOf    string
+	strYearOf    string
 }
 var conf args
 
@@ -56,68 +69,120 @@ func rangeWriteReport(writer gocsv.CSVWriter, db *sqlx.DB, typ account.Type, max
 	}
 }
 
-func init() {
-	flag.StringVar(&conf.dbFile, "db", "", "GnuCash SQLite3 database file name")
-	flag.StringVar(&conf.date, "date", time.Now().Format(dateFormat), "expense date")
-	flag.IntVar(&conf.depth, "depth", 2, "expense account depth")
-	flag.BoolVar(&conf.yearly, "yearly", false, "yearly report")
-	flag.BoolVar(&conf.quarterly, "quarterly", false, "quarterly report")
-	flag.BoolVar(&conf.monthly, "monthly", false, "monthly report")
-	flag.BoolVar(&conf.weekly, "weekly", false, "weekly report")
-	flag.Parse()
-
-	var err error
-	if conf.dt, err = time.Parse(dateFormat, conf.date); err != nil {
-		panic("Invalid date")
-	} else if !conf.monthly && !conf.quarterly && !conf.weekly && !conf.yearly {
-		panic("No reporting period specified")
-	} else if conf.monthly && conf.quarterly && conf.weekly && conf.yearly {
-		panic("More than one reporting period specified")
+func exitOnError(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
-func isFlagPassed(name string) bool {
-	found := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
+func init() {
+	flag.StringVar(&conf.account, flagAccount, "all", "account name (all, asset, income, expense, liability)")
+	flag.StringVar(&conf.dbFile, flagDatabase, "", "GnuCash SQLite3 database file name")
+	flag.IntVar(&conf.depth, flagDepth, 2, "account report depth")
+	flag.StringVar(&conf.strEnd, flagDateEnd, now.With(time.Now()).EndOfYear().String(), "report end date")
+	flag.StringVar(&conf.strStart, flagDateStart, now.With(time.Now()).BeginningOfYear().String(), "report start date")
+	flag.StringVar(&conf.strMonthOf, flagDateMonthOf, now.With(time.Now()).BeginningOfMonth().String(), "report month of date")
+	flag.StringVar(&conf.strQuarterOf, flagDateQuarterOf, now.With(time.Now()).BeginningOfQuarter().String(), "report quarter of date")
+	flag.StringVar(&conf.strWeekOf, flagDateWeekOf, now.With(time.Now()).BeginningOfWeek().String(), "report week of date")
+	flag.StringVar(&conf.strYearOf, flagDateYearOf, now.With(time.Now()).BeginningOfYear().String(), "report year of date")
+	flag.Parse()
+
+	exitOnError(isArgsValid(&conf))
+}
+
+func isArgsValid(a *args) error {
+	var err error
+
+	flagsDateStartEnd := isFlagPassed(flagDateStart, flagDateEnd)
+	flagsDateOf := isFlagPassed(flagDateMonthOf, flagDateQuarterOf, flagDateWeekOf, flagDateYearOf)
+
+	if a.accountType, err = account.StringToType(a.account); err != nil {
+		err = fmt.Errorf("Invalid account: %v", err)
+	} else if _, err = os.Stat(a.dbFile); err != nil {
+		err = fmt.Errorf("Invalid database file name: %v", err)
+	} else if conf.depth < 1 {
+		err = fmt.Errorf("Account report depth must be greater than zero")
+	} else if flagsDateOf != 0 && flagsDateOf != 1 {
+		err = fmt.Errorf("Too many report dates provided")
+	} else if flagsDateStartEnd != 0 && flagsDateOf != 0 {
+		err = fmt.Errorf("Too many report dates provided")
+	} else if flagsDateStartEnd > 0 || (flagsDateStartEnd == 0 && flagsDateOf == 0) {
+		if conf.dtStart, err = now.Parse(conf.strStart); err != nil {
+			err = fmt.Errorf("Invalid report start date: %v", err)
+		} else if conf.dtEnd, err = now.Parse(conf.strEnd); err != nil {
+			err = fmt.Errorf("Invalid report end date: %v", err)
 		}
-	})
-	return found
+	} else if flagsDateOf > 0 {
+		if isFlagPassed(flagDateMonthOf) > 0 {
+			if conf.dtStart, err = now.Parse(conf.strMonthOf); err == nil {
+				conf.dtStart = now.With(conf.dtStart).BeginningOfMonth()
+				conf.dtEnd = now.With(conf.dtStart).EndOfMonth()
+			} else {
+				err = fmt.Errorf("Invalid report month of date: %v", err)
+			}
+		} else if isFlagPassed(flagDateQuarterOf) > 0 {
+			if conf.dtStart, err = now.Parse(conf.strQuarterOf); err == nil {
+				conf.dtStart = now.With(conf.dtStart).BeginningOfQuarter()
+				conf.dtEnd = now.With(conf.dtStart).EndOfQuarter()
+			} else {
+				err = fmt.Errorf("Invalid report quarter of date: %v", err)
+			}
+		} else if isFlagPassed(flagDateWeekOf) > 0 {
+			if conf.dtStart, err = now.Parse(conf.strWeekOf); err == nil {
+				conf.dtStart = now.With(conf.dtStart).BeginningOfWeek()
+				conf.dtEnd = now.With(conf.dtStart).EndOfWeek()
+			} else {
+				err = fmt.Errorf("Invalid report week of date: %v", err)
+			}
+		} else if isFlagPassed(flagDateYearOf) > 0 {
+			if conf.dtStart, err = now.Parse(conf.strYearOf); err == nil {
+				conf.dtStart = now.With(conf.dtStart).BeginningOfYear()
+				conf.dtEnd = now.With(conf.dtStart).EndOfYear()
+			} else {
+				err = fmt.Errorf("Invalid report year of date: %v", err)
+			}
+		}
+	}
+	return err
+}
+
+func isFlagPassed(names ...string) int {
+	count := 0
+	for _, name := range names {
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == name {
+				count++
+			}
+		})
+	}
+	return count
 }
 
 func main() {
 	if db, err := sqlx.Connect("sqlite3", conf.dbFile); err == nil {
 		defer db.Close()
 
-		loc := time.Now().Location()
-		t0 := time.Time{}
-
-		ts := time.Date(conf.dt.Year(), conf.dt.Month(), conf.dt.Day(), 0, 0, 0, 0, loc)
-		var t1, t2 time.Time
-		if conf.monthly {
-			t1 = now.With(ts).BeginningOfMonth()
-			t2 = now.With(ts).EndOfMonth()
-		} else if conf.quarterly {
-			t1 = now.With(ts).BeginningOfQuarter()
-			t2 = now.With(ts).EndOfQuarter()
-		} else if conf.weekly {
-			t1 = now.With(ts).BeginningOfWeek()
-			t2 = now.With(ts).EndOfWeek()
-		} else if conf.yearly {
-			t1 = now.With(ts).BeginningOfYear()
-			t2 = now.With(ts).EndOfYear()
-		}
-
 		writer := gocsv.DefaultCSVWriter(os.Stdout)
 		//writer.Comma = '\t'
-
 		gocsv.MarshalCSV([]*account.Row{}, writer)
-		rangeWriteReport(writer, db, account.Asset, conf.depth, t0, t2)
-		rangeWriteReport(writer, db, account.Expense, conf.depth, t1, t2)
-		rangeWriteReport(writer, db, account.Income, conf.depth, t1, t2)
-		rangeWriteReport(writer, db, account.Liability, conf.depth, t0, t2)
+
+		t0 := time.Time{}
+		t1 := conf.dtStart
+		t2 := conf.dtEnd
+
+		switch conf.accountType {
+		case account.All:
+			rangeWriteReport(writer, db, account.Asset, conf.depth, t0, t2)
+			rangeWriteReport(writer, db, account.Expense, conf.depth, t1, t2)
+			rangeWriteReport(writer, db, account.Income, conf.depth, t1, t2)
+			rangeWriteReport(writer, db, account.Liability, conf.depth, t0, t2)
+		case account.Asset, account.Bank, account.Cash, account.Credit, account.Liability:
+			rangeWriteReport(writer, db, conf.accountType, conf.depth, t0, t2)
+		default:
+			rangeWriteReport(writer, db, conf.accountType, conf.depth, t1, t2)
+		}
 	} else {
-		fmt.Println("Failed to open database:", err)
+		exitOnError(fmt.Errorf("Failed to open database: %v", err))
 	}
 }

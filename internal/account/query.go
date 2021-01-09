@@ -2,17 +2,35 @@ package account
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
+	"syscall"
 	"text/template"
 	"time"
 )
 
 type Type int
 const (
-	Asset Type = iota
+	All Type = iota
+	Asset
+	Bank
+	Cash
+	Credit
 	Expense
 	Income
 	Liability
 )
+
+var typeStrings []string = []string{
+	"ALL",
+	"ASSET",
+	"BANK",
+	"CASH",
+	"CREDIT",
+	"EXPENSE",
+	"INCOME",
+	"LIABILITY",
+}
 
 // Reference: https://lists.gnucash.org/pipermail/gnucash-user/2014-December/057344.html
 const query = `
@@ -107,33 +125,31 @@ func NewQuery(typ Type, depth int, time1, time2 time.Time) string {
 	return qry
 }
 
-func TypeToString(typ Type) string {
-	str := ""
-	switch typ {
-	case Asset:
-		str = "ASSET"
-	case Expense:
-		str = "EXPENSE"
-	case Income:
-		str = "INCOME"
-	case Liability:
-		str = "LIABILITY"
-	default:
+func StringToType(str string) (Type, error) {
+	str = strings.ToUpper(str)
+	for i, v := range typeStrings {
+		if str == v {
+			return Type(i), nil
+		}
 	}
-	return str
+	return All, syscall.EINVAL
+}
+
+func TypeToString(typ Type) string {
+	return typeStrings[typ]
 }
 
 func TypeToValues(typ Type) string {
 	vals := ""
 	switch typ {
 	case Asset:
-		vals = "'ASSET', 'BANK', 'CASH'"
+		vals = fmt.Sprintf("'%s', '%s', '%s'", TypeToString(Asset), TypeToString(Bank), TypeToString(Cash))
 	case Expense:
-		vals = "'EXPENSE'"
+		vals = fmt.Sprintf("'%s'", TypeToString(Expense))
 	case Income:
-		vals = "'INCOME'"
+		vals = fmt.Sprintf("'%s'", TypeToString(Income))
 	case Liability:
-		vals = "'CREDIT', 'LIABILITY'"
+		vals = fmt.Sprintf("'%s', '%s'", TypeToString(Credit), TypeToString(Liability))
 	default:
 	}
 	return vals
