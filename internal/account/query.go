@@ -73,7 +73,7 @@ ORDER BY tr.name_tree, value DESC;
 type Row struct {
 	Type      string  `csv:"account_type" db:"account_type"`
 	StartDate string  `csv:"start_date"   db:"start_date"`
-	EndDate   string  `csv:"end_date"      db:"end_date"`
+	EndDate   string  `csv:"end_date"     db:"end_date"`
 	Depth     int     `csv:"depth"        db:"depth"`
         DepthName string  `csv:"depth_name"   db:"depth_name"`
 	FullName  string  `csv:"full_name"    db:"full_name"`
@@ -137,5 +137,4 @@ func TypeToValues(typ Type) string {
 	default:
 	}
 	return vals
-
 }
