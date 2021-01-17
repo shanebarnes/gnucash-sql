@@ -2,4 +2,4 @@
 
 go vet -v ./...
 go test -v ./... -cover
-go build -v -o bin/cash cmd/cash/cash.go
+go build -v -o bin/report cmd/report/report.go

@@ -5,20 +5,20 @@ SQLite Queries for use with GnuCash
 
 ```
 # Run with defaults (get all accounts report for the current year)
-./bin/cash -db sqlite3.gnucash
+./bin/report -db sqlite3.gnucash
 
 # Get yearly expense report
-./bin/cash -db sqlite3.gnucash -account expense -yearof 2021
+./bin/report -db sqlite3.gnucash -account expense -yearof 2021
 
 # Get quarterly income report
-./bin/cash -db sqlite3.gnucash -account income -quarterof 2021-1
+./bin/report -db sqlite3.gnucash -account income -quarterof 2021-1
 
 # Get monthly accounts report
-./bin/cash -db sqlite3.gnucash -monthof 2021-1
+./bin/report -db sqlite3.gnucash -monthof 2021-1
 
 # Get weekly accounts report
-./bin/cash -db sqlite3.gnucash -weekof 2021-1
+./bin/report -db sqlite3.gnucash -weekof 2021-1
 
 # Get accounts report for a specific period of time
-./bin/cash -db sqlite3.gnucash -start 2021-1-2 -end 2021-1-16
+./bin/report -db sqlite3.gnucash -start 2021-1-2 -end 2021-1-16
 ```
