@@ -15,38 +15,38 @@ func getTime1() time.Time {
 
 func TestNewQuery_Asset(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Asset, 1, t1, t1.Add(time.Second))
+	qry := NewQuery(Asset, "%", 1, t1, t1.Add(time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'ASSET' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('ASSET', 'BANK', 'CASH')\n"))
-	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836801\"\n"))
+	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836801\""))
 }
 
 func TestNewQuery_Expense(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Expense, 2, t1, t1.Add(2 * time.Second))
+	qry := NewQuery(Expense, "%", 2, t1, t1.Add(2 * time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'EXPENSE' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('EXPENSE')\n"))
-	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836802\"\n"))
+	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836802\""))
 }
 
 func TestNewQuery_Income(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Income, 3, t1, t1.Add(3 * time.Second))
+	qry := NewQuery(Income, "%", 3, t1, t1.Add(3 * time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'INCOME' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('INCOME')\n"))
-	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836803\"\n"))
+	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836803\""))
 }
 
 func TestNewQuery_Liability(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Liability, 4, t1, t1.Add(4 * time.Second))
+	qry := NewQuery(Liability, "%", 4, t1, t1.Add(4 * time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'LIABILITY' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('CREDIT', 'LIABILITY')\n"))
-	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836804\"\n"))
+	assert.True(t, strings.Contains(qry, "AND strftime('%s', tx.post_date) BETWEEN \"1577836800\" AND \"1577836804\""))
 }
 
 func TestStringToType(t *testing.T) {

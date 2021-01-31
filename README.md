@@ -21,4 +21,10 @@ SQLite Queries for use with GnuCash
 
 # Get accounts report for a specific period of time
 ./bin/report -db sqlite3.gnucash -start 2021-1-2 -end 2021-1-16
+
+# Get accounts report for since a specific start date
+./bin/report -db sqlite3.gnucash -start 2021-1-2
+
+# Get accounts report by searching for a specific name
+./bin/report -db sqlite3.gnucash -yearof 2020 -name utilities
 ```

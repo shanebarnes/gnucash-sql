@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gocarina/gocsv"
@@ -15,9 +16,11 @@ import (
 
 const (
 	flagAccount = "account"
+	flagName = "name"
 	flagDatabase = "db"
 	flagDepth = "depth"
 	flagDateEnd = "end"
+	//flagDateGroupBy = "groupby"
 	flagDateMonthOf = "monthof"
 	flagDateQuarterOf = "quarterof"
 	flagDateStart = "start"
@@ -33,7 +36,9 @@ type args struct {
 	depth        int
 	dtEnd        time.Time
 	dtStart      time.Time
+	name         string
 	strEnd       string
+	strGroupBy   string
 	strMonthOf   string
 	strQuarterOf string
 	strStart     string
@@ -60,10 +65,10 @@ func writeReport(writer gocsv.CSVWriter, db *sqlx.DB, query string) (int, error)
 	return records, err
 }
 
-func rangeWriteReport(writer gocsv.CSVWriter, db *sqlx.DB, typ account.Type, maxDepth int, t1, t2 time.Time) {
+func rangeWriteReport(writer gocsv.CSVWriter, db *sqlx.DB, typ account.Type, name string, maxDepth int, t1, t2 time.Time) {
 	var err error
 	for depth := 1; depth <= maxDepth && err == nil; depth++ {
-		if _, err = writeReport(writer, db, account.NewQuery(typ, depth, t1, t2)); err != nil {
+		if _, err = writeReport(writer, db, account.NewQuery(typ, name, depth, t1, t2)); err != nil {
 			fmt.Println("Failed to execute query:", err)
 		}
 	}
@@ -77,17 +82,23 @@ func exitOnError(err error) {
 }
 
 func init() {
-	flag.StringVar(&conf.account, flagAccount, "all", "account name (all, asset, income, expense, liability)")
+	flag.StringVar(&conf.account, flagAccount, "all", "account type (all, asset, income, expense, liability)")
+	flag.StringVar(&conf.name, flagName, account.QueryWildcard, "account name")
 	flag.StringVar(&conf.dbFile, flagDatabase, "", "GnuCash SQLite3 database file name")
 	flag.IntVar(&conf.depth, flagDepth, 2, "account report depth")
 	flag.StringVar(&conf.strEnd, flagDateEnd, now.With(time.Now()).EndOfYear().String(), "report end date")
 	flag.StringVar(&conf.strStart, flagDateStart, now.With(time.Now()).BeginningOfYear().String(), "report start date")
+	//flag.StringVar(&conf.strGroupBy, flagDateGroupBy, "", "report group interval (week, month, quarter, year)")
 	flag.StringVar(&conf.strMonthOf, flagDateMonthOf, now.With(time.Now()).BeginningOfMonth().String(), "report month of date")
 	flag.StringVar(&conf.strQuarterOf, flagDateQuarterOf, now.With(time.Now()).BeginningOfQuarter().String(), "report quarter of date")
 	flag.StringVar(&conf.strWeekOf, flagDateWeekOf, now.With(time.Now()).BeginningOfWeek().String(), "report week of date")
 	flag.StringVar(&conf.strYearOf, flagDateYearOf, now.With(time.Now()).BeginningOfYear().String(), "report year of date")
 	flag.Parse()
 
+	if len(os.Args) < 2 {
+		flag.Usage()
+		os.Exit(1)
+	}
 	exitOnError(isArgsValid(&conf))
 }
 
@@ -113,6 +124,7 @@ func isArgsValid(a *args) error {
 		} else if conf.dtEnd, err = now.Parse(conf.strEnd); err != nil {
 			err = fmt.Errorf("Invalid report end date: %v", err)
 		}
+		// TODO: apply group by flag?
 	} else if flagsDateOf > 0 {
 		if isFlagPassed(flagDateMonthOf) > 0 {
 			if conf.dtStart, err = now.Parse(conf.strMonthOf); err == nil {
@@ -144,6 +156,16 @@ func isArgsValid(a *args) error {
 			}
 		}
 	}
+
+	if isFlagPassed(flagName) > 0 {
+		if !strings.HasPrefix(conf.name, account.QueryWildcard) {
+			conf.name = account.QueryWildcard + conf.name
+		}
+		if !strings.HasSuffix(conf.name, account.QueryWildcard) {
+			conf.name = conf.name + account.QueryWildcard
+		}
+	}
+
 	return err
 }
 
@@ -173,14 +195,14 @@ func main() {
 
 		switch conf.accountType {
 		case account.All:
-			rangeWriteReport(writer, db, account.Asset, conf.depth, t0, t2)
-			rangeWriteReport(writer, db, account.Expense, conf.depth, t1, t2)
-			rangeWriteReport(writer, db, account.Income, conf.depth, t1, t2)
-			rangeWriteReport(writer, db, account.Liability, conf.depth, t0, t2)
+			rangeWriteReport(writer, db, account.Asset, conf.name, conf.depth, t0, t2)
+			rangeWriteReport(writer, db, account.Expense, conf.name, conf.depth, t1, t2)
+			rangeWriteReport(writer, db, account.Income, conf.name, conf.depth, t1, t2)
+			rangeWriteReport(writer, db, account.Liability, conf.name, conf.depth, t0, t2)
 		case account.Asset, account.Bank, account.Cash, account.Credit, account.Liability:
-			rangeWriteReport(writer, db, conf.accountType, conf.depth, t0, t2)
+			rangeWriteReport(writer, db, conf.accountType, conf.name, conf.depth, t0, t2)
 		default:
-			rangeWriteReport(writer, db, conf.accountType, conf.depth, t1, t2)
+			rangeWriteReport(writer, db, conf.accountType, conf.name, conf.depth, t1, t2)
 		}
 	} else {
 		exitOnError(fmt.Errorf("Failed to open database: %v", err))
