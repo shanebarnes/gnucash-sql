@@ -1,0 +1,32 @@
+name: report
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        go_version: [1.17.x]
+        os_version: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os_version: macos-latest
+            script_name: ./build.sh
+          - os_version: ubuntu-latest
+            script_name: ./build.sh
+          - os_version: windows-latest
+            script_name: .\build.cmd
+    runs-on: ${{ matrix.os_version }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go_version }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Artifacts
+        run: ${{ matrix.script_name }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@master
+        with:
+          name: report
+          path: bin

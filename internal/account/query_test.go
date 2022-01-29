@@ -24,7 +24,7 @@ func TestNewQuery_Asset(t *testing.T) {
 
 func TestNewQuery_Expense(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Expense, "%", 2, t1, t1.Add(2 * time.Second))
+	qry := NewQuery(Expense, "%", 2, t1, t1.Add(2*time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'EXPENSE' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('EXPENSE')\n"))
@@ -33,7 +33,7 @@ func TestNewQuery_Expense(t *testing.T) {
 
 func TestNewQuery_Income(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Income, "%", 3, t1, t1.Add(3 * time.Second))
+	qry := NewQuery(Income, "%", 3, t1, t1.Add(3*time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'INCOME' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('INCOME')\n"))
@@ -42,7 +42,7 @@ func TestNewQuery_Income(t *testing.T) {
 
 func TestNewQuery_Liability(t *testing.T) {
 	t1 := getTime1()
-	qry := NewQuery(Liability, "%", 4, t1, t1.Add(4 * time.Second))
+	qry := NewQuery(Liability, "%", 4, t1, t1.Add(4*time.Second))
 	assert.NotEmpty(t, qry)
 	assert.True(t, strings.Contains(qry, "SELECT 'LIABILITY' AS account_type,\n"))
 	assert.True(t, strings.Contains(qry, "AND tr.account_type IN ('CREDIT', 'LIABILITY')\n"))

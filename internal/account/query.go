@@ -14,6 +14,7 @@ const (
 )
 
 type Type int
+
 const (
 	All Type = iota
 	Asset
@@ -138,8 +139,8 @@ func newTxnValue(statement, condition string, time1, time2 time.Time) string {
 		input := txnData{
 			Statement: statement,
 			Condition: condition,
-			Time1: time1.Unix(),
-			Time2: time2.Unix(),
+			Time1:     time1.Unix(),
+			Time2:     time2.Unix(),
 		}
 		if err = t.Execute(&buf, input); err == nil {
 			qry = buf.String()
@@ -153,16 +154,16 @@ func NewQuery(typ Type, name string, depth int, time1, time2 time.Time) string {
 	if t, err := template.New(TypeToString(typ)).Parse(query); err == nil {
 		var buf bytes.Buffer
 		input := qryData{
-			Depth: depth,
-			Name: name,
-			SubBalance: newTxnValue("ROUND(SUM(CAST(s.value_num AS DOUBLE) / CAST (s.value_denom AS DOUBLE)), 2)", "", time1, time2),
-			SubCredits: newTxnValue("ROUND(SUM(CAST(s.value_num AS DOUBLE) / CAST (s.value_denom AS DOUBLE)), 2)", "AND s.value_num < 0", time1, time2),
-			SubDebits: newTxnValue("ROUND(SUM(CAST(s.value_num AS DOUBLE) / CAST (s.value_denom AS DOUBLE)), 2)", "AND s.value_num > 0", time1, time2),
+			Depth:       depth,
+			Name:        name,
+			SubBalance:  newTxnValue("ROUND(SUM(CAST(s.value_num AS DOUBLE) / CAST (s.value_denom AS DOUBLE)), 2)", "", time1, time2),
+			SubCredits:  newTxnValue("ROUND(SUM(CAST(s.value_num AS DOUBLE) / CAST (s.value_denom AS DOUBLE)), 2)", "AND s.value_num < 0", time1, time2),
+			SubDebits:   newTxnValue("ROUND(SUM(CAST(s.value_num AS DOUBLE) / CAST (s.value_denom AS DOUBLE)), 2)", "AND s.value_num > 0", time1, time2),
 			SubTxnCount: newTxnValue("COUNT(*)", "", time1, time2),
-			Type: TypeToString(typ),
-			TypeValues: TypeToValues(typ),
-			Time1: time1.Unix(),
-			Time2: time2.Unix(),
+			Type:        TypeToString(typ),
+			TypeValues:  TypeToValues(typ),
+			Time1:       time1.Unix(),
+			Time2:       time2.Unix(),
 		}
 		if err = t.Execute(&buf, input); err == nil {
 			qry = buf.String()

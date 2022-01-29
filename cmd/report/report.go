@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gocarina/gocsv"
+	"github.com/hashicorp/go-version"
 	"github.com/jinzhu/now"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -15,17 +16,17 @@ import (
 )
 
 const (
-	flagAccount = "account"
-	flagName = "name"
+	flagAccount  = "account"
+	flagName     = "name"
 	flagDatabase = "db"
-	flagDepth = "depth"
-	flagDateEnd = "end"
+	flagDepth    = "depth"
+	flagDateEnd  = "end"
 	//flagDateGroupBy = "groupby"
-	flagDateMonthOf = "monthof"
+	flagDateMonthOf   = "monthof"
 	flagDateQuarterOf = "quarterof"
-	flagDateStart = "start"
-	flagDateWeekOf = "weekof"
-	flagDateYearOf = "yearof"
+	flagDateStart     = "start"
+	flagDateWeekOf    = "weekof"
+	flagDateYearOf    = "yearof"
 )
 
 type args struct {
@@ -45,6 +46,7 @@ type args struct {
 	strWeekOf    string
 	strYearOf    string
 }
+
 var conf args
 
 func writeReport(writer gocsv.CSVWriter, db *sqlx.DB, query string) (int, error) {
@@ -93,12 +95,18 @@ func init() {
 	flag.StringVar(&conf.strQuarterOf, flagDateQuarterOf, now.With(time.Now()).BeginningOfQuarter().String(), "report quarter of date")
 	flag.StringVar(&conf.strWeekOf, flagDateWeekOf, now.With(time.Now()).BeginningOfWeek().String(), "report week of date")
 	flag.StringVar(&conf.strYearOf, flagDateYearOf, now.With(time.Now()).BeginningOfYear().String(), "report year of date")
+	printVersion := flag.Bool("version", false, "Print version information")
 	flag.Parse()
 
 	if len(os.Args) < 2 {
 		flag.Usage()
 		os.Exit(1)
+	} else if *printVersion {
+		ver, _ := version.NewSemver("1.0.0")
+		fmt.Fprintf(os.Stdout, "report version %s\n", ver.String())
+		os.Exit(0)
 	}
+
 	exitOnError(isArgsValid(&conf))
 }
 
