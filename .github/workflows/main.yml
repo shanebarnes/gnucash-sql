@@ -10,11 +10,11 @@ jobs:
         os_version: [macos-latest, ubuntu-latest, windows-latest]
         include:
           - os_version: macos-latest
-            script_name: ./build.sh
+            script_name: ./scripts/build.sh
           - os_version: ubuntu-latest
-            script_name: ./build.sh
+            script_name: ./scripts/build.sh
           - os_version: windows-latest
-            script_name: .\build.cmd
+            script_name: .\scripts\build.cmd
     runs-on: ${{ matrix.os_version }}
     steps:
       - name: Install Go

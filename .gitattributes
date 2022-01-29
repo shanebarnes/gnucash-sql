@@ -1,0 +1,2 @@
+# Preserve LF endings, even on Windows to prevent gofmt from failing
+text eol=lf
