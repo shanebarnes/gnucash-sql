@@ -27,4 +27,7 @@ SQLite Queries for use with GnuCash
 
 # Get accounts report by searching for a specific name
 ./bin/report -db sqlite3.gnucash -yearof 2020 -name utilities
+
+# Get accounts report for the last decade grouped by year
+./bin/report -db sqlite3.gnucash -start 2013 -groupby year
 ```
