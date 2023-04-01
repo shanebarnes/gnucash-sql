@@ -119,7 +119,7 @@ func init() {
 		flag.Usage()
 		os.Exit(1)
 	} else if *printVersion {
-		ver, _ := version.NewSemver("1.1.0")
+		ver, _ := version.NewSemver("1.1.1")
 		fmt.Fprintf(os.Stdout, "report version %s\n", ver.String())
 		os.Exit(0)
 	}

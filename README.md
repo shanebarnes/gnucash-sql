@@ -1,5 +1,25 @@
 # gnucash-sql
-SQLite Queries for use with GnuCash
+
+Run SQL queries quickly and effortlessly against your GnuCash SQLite database
+
+## Build Instructions
+
+### Unix
+
+```
+$ git clone https://github.com/shanebarnes/stocker.git
+$ cd stocker
+$ ./build/build.sh
+```
+
+### Windows
+
+```
+> git clone https://github.com/shanebarnes/stocker.git
+> cd stocker
+> scripts\build.cmd
+
+```
 
 ## Examples
 
