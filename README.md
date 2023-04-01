@@ -7,16 +7,16 @@ Run SQL queries quickly and effortlessly against your GnuCash SQLite database
 ### Unix
 
 ```
-$ git clone https://github.com/shanebarnes/stocker.git
-$ cd stocker
+$ git clone https://github.com/shanebarnes/gnucash-sql.git
+$ cd gnucash-sql
 $ ./build/build.sh
 ```
 
 ### Windows
 
 ```
-> git clone https://github.com/shanebarnes/stocker.git
-> cd stocker
+> git clone https://github.com/shanebarnes/gnucash-sql.git
+> cd gnucash-sql
 > scripts\build.cmd
 
 ```
